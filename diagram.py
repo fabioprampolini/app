@@ -7,7 +7,6 @@ from datetime import datetime
 # --- CONFIGURAZIONE PAGINA E RIMOZIONE LINK TITOLI ---
 st.set_page_config(layout="wide", page_title="Home")
 
-
 # --- FUNZIONI DI GESTIONE DATI ---
 def salva_dati(file_csv, data, dict_valori):
     nuovo = pd.DataFrame({'Data': [pd.to_datetime(data)], **dict_valori})
@@ -17,6 +16,8 @@ def salva_dati(file_csv, data, dict_valori):
     else:
         df = nuovo
     df.to_csv(file_csv, index=False)
+
+
 
 def crea_sezione_social(nome_social, file_csv, metriche):
     st.subheader(f"{nome_social}")
@@ -55,8 +56,9 @@ st.markdown("""
     <style>
     /* 1. RIMOZIONE SIDEBAR TOTALE */
     [data-testid="collapsedControl"] {display: none !important;}
+
     section[data-testid="stSidebar"] {display: none !important;}
-    
+
     /* 2. RIMOZIONE ICONE LINK TITOLI */
     .stHeader a { display: none !important; }
     
@@ -81,7 +83,7 @@ st.markdown("""
     
     .nav-link:hover {
         text-decoration: none !important;
-        color: #58595b !important;
+        color: #58595!important;
         border-bottom: 2px solid red; /* Effetto linea rossa solo al passaggio del mouse */
     }
 
