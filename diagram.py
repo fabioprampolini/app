@@ -56,9 +56,10 @@ st.markdown("""
     <style>
     /* 1. RIMOZIONE SIDEBAR TOTALE */
     [data-testid="collapsedControl"] {display: none !important;}
-
     section[data-testid="stSidebar"] {display: none !important;}
-
+   .stApp {
+        background-color: #ffffff !important;
+    }
     /* 2. RIMOZIONE ICONE LINK TITOLI */
     .stHeader a { display: none !important; }
     

@@ -11,7 +11,9 @@ st.markdown("""
     [data-testid="collapsedControl"] {display: none !important;}
     section[data-testid="stSidebar"] {display: none !important;}
     
-    
+    .stApp {
+        background-color: #ffffff !important;
+    }
     /* 3. MENU DI NAVIGAZIONE */
     .nav-container {
         display: flex;
