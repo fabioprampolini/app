@@ -24,6 +24,7 @@ def crea_sezione_social(nome_social, file_csv, metriche):
     
     with st.container(border=True):
         col_chart, col_input = st.columns([3, 1])
+
         
         # --- COLONNA SINISTRA: GRAFICO ---
         with col_chart:
@@ -70,8 +71,8 @@ st.markdown("""
     
   .nav-link {
         text-decoration: none !important; /* Forza la rimozione della sottolineatura */
-        color: #ffffff !important;
-        font-size: 25px;
+        color: #58595b !important;
+        font-size: 30px;
         font-weight: 500;
         transition: 0.3s;
         border-bottom: 2px solid transparent;
@@ -80,8 +81,18 @@ st.markdown("""
     
     .nav-link:hover {
         text-decoration: none !important;
-        color: #ffffff !important;
+        color: #58595b !important;
         border-bottom: 2px solid red; /* Effetto linea rossa solo al passaggio del mouse */
+    }
+
+    /* Colore per tutti i titoli nativi di Streamlit */
+    h1, h2, h3, h4, h5, h6, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+    color: #58595b !important;}
+
+
+    /* Applica il colore anche ai sottotitoli specifici di Streamlit */
+    .st-emotion-cache-isw95m, .st-emotion-cache-10trblm { 
+    color: #58595b !important;
     }
     </style>
     
