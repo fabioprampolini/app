@@ -47,6 +47,7 @@ st.markdown("""
         div[data-testid="stColumn"] button[help="Elimina file"] {
         background-color: transparent !important;
         border: 0 !important;
+        text-align: center !important;
         color: #888 !important; /* Grigio di base */
         font-size: 20px !important;
         padding: 0 !important;
