@@ -1,8 +1,9 @@
-# .streamlit/config.toml
 [server]
 enableStaticServing = true
-base="light"
-primaryColor="#58595b"
-backgroundColor="#ffffff"
-secondaryBackgroundColor="#f0f2f6"
-textColor="#58595b"
+
+[theme]
+base = "light" 
+primaryColor = "#FF4B4B"          # Rosso (Bottoni, Slider, Accenti)
+ # Grigio Antracite (Sidebar e Widget)
+textColor = "#000000"             # Bianco (Testo)
+font = "sans serif"

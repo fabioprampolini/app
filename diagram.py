@@ -47,66 +47,71 @@ def crea_sezione_social(nome_social, file_csv, metriche):
                 for m in metriche:
                     input_valori[m] = [st.number_input(m, min_value=0, step=1, key=f"in_{nome_social}_{m}")]
                 
-                if st.form_submit_button(f"Inserisci", use_container_width=True):
+                if st.form_submit_button(f"Invia", use_container_width=True):
                     salva_dati(file_csv, d_sel, input_valori)
                     st.rerun()
 
-# --- CSS PER IL MENU A LINK CENTRALI ---
+# 1. Configurazione Pagina (Deve essere SEMPRE la prima riga)
+st.set_page_config(
+    page_title="Il Mio Progetto",
+    layout="wide",
+    initial_sidebar_state="expanded" # Ora la teniamo aperta per la navigazione
+)
 st.markdown("""
     <style>
-    /* 1. RIMOZIONE SIDEBAR TOTALE */
-    [data-testid="collapsedControl"] {display: none !important;}
-    section[data-testid="stSidebar"] {display: none !important;}
-   .stApp {
-        background-color: #ffffff !important;
-    }
-    /* 2. RIMOZIONE ICONE LINK TITOLI */
+    /* RIMOZIONE ELEMENTI NATIVI */
+    [data-testid="stSidebar"], [data-testid="collapsedControl"] {display: none !important;}
     .stHeader a { display: none !important; }
     
-    /* Contenitore Menu */
-    .nav-container {
-        display: flex;
-        justify-content: flex-start;
-        gap: 50px;
-        padding: 20px 0;
-        font-family: 'sans serif';
-    }
+    /* RIMOZIONE DEI TRE PUNTINI IN ALTO A DESTRA */
+    #MainMenu {display: none !important;}
+    header {visibility: hidden !important;}
     
-  .nav-link {
-        text-decoration: none !important; /* Forza la rimozione della sottolineatura */
-        color: #58595b !important;
+    /* RIMOZIONE DEL FOOTER "MADE WITH STREAMLIT" (Opzionale) */
+    footer {visibility: hidden !important;}
+    
+    /* NAVIGAZIONE TESTUALE */
+    .nav-wrapper {
+        display: flex;
+        gap: 40px;
+        padding: 10px 0;
+        margin-bottom: 5px;
+    }
+
+    .nav-link {
         font-size: 30px;
         font-weight: 500;
-        transition: 0.3s;
-        border-bottom: 2px solid transparent;
-        padding-bottom: 5px;
-    }
-    
-    .nav-link:hover {
+        color: #000000 !important;
         text-decoration: none !important;
-        color: #58595!important;
-        border-bottom: 2px solid red; /* Effetto linea rossa solo al passaggio del mouse */
+        transition: 0.3s;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
     }
 
-    /* Colore per tutti i titoli nativi di Streamlit */
-    h1, h2, h3, h4, h5, h6, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-    color: #58595b !important;}
+    .nav-link:hover {
+        color: #FF4B4B !important; /* Il tuo rosso */
+        border-bottom: 3px solid #FF4B4B;
+    }
 
-
-    /* Applica il colore anche ai sottotitoli specifici di Streamlit */
-    .st-emotion-cache-isw95m, .st-emotion-cache-10trblm { 
-    color: #58595b !important;
+    /* LINEA ROSSA DI SEPARAZIONE */
+    .header-line {
+        border: 0;
+        height: 1px;
+        background: #FF4B4B;
+        margin-bottom: 30px;
+        opacity: 0.5;
     }
     </style>
-    
-    <div class="nav-container">
-        <a href="/" " class="nav-link">Home</a>
-        <a href="/app"  class="nav-link">Gestione Articoli</a>
+
+    <div class="nav-wrapper">
+        <a href="./" target="_self" class="nav-link">Home</a>
+        <a href="./app" target="_self" class="nav-link">Gestione Articoli</a>
     </div>
-    <hr>
+    <div class="header-line"></div>
     """, unsafe_allow_html=True)
 
 
+st.markdown('<div class="red-line"></div>', unsafe_allow_html=True)
 # --- MAIN APP ---
 st.markdown("<h1 style='text-align: center;'>Grafici dei social media</h1>", unsafe_allow_html=True)
 

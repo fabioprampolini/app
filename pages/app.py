@@ -7,56 +7,59 @@ st.set_page_config(page_title="Gestione Articoli", layout="wide", initial_sideba
 
 st.markdown("""
     <style>
-    /* 1. RIMOZIONE SIDEBAR TOTALE */
-    [data-testid="collapsedControl"] {display: none !important;}
-    section[data-testid="stSidebar"] {display: none !important;}
+    /* RIMOZIONE ELEMENTI NATIVI */
+    [data-testid="stSidebar"], [data-testid="collapsedControl"] {display: none !important;}
+    .stHeader a { display: none !important; }
     
-    .stApp {
-        background-color: #ffffff !important;
-    }
-    /* 3. MENU DI NAVIGAZIONE */
-    .nav-container {
+    /* RIMOZIONE DEI TRE PUNTINI IN ALTO A DESTRA */
+    #MainMenu {display: none !important;}
+    header {visibility: hidden !important;}
+    
+    /* RIMOZIONE DEL FOOTER "MADE WITH STREAMLIT" (Opzionale) */
+    footer {visibility: hidden !important;}
+    
+    /* NAVIGAZIONE TESTUALE */
+    .nav-wrapper {
         display: flex;
-        justify-content: flex-start;
-        gap: 50px;
-        padding: 20px 0;
+        gap: 40px;
+        padding: 10px 0;
+        margin-bottom: 5px;
     }
-    
+
     .nav-link {
-        text-decoration: none !important;
-        color: #58595b !important;
         font-size: 30px;
         font-weight: 500;
+        color: #000000 !important;
+        text-decoration: none !important;
         transition: 0.3s;
-        border-bottom: 2px solid transparent;
-        padding-bottom: 5px;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
     }
-    
+
     .nav-link:hover {
-        color: #58595b !important;
-        border-bottom: 2px solid red;
+        color: #FF4B4B !important; /* Il tuo rosso */
+        border-bottom: 3px solid #FF4B4B;
     }
 
-    /* Colore per tutti i titoli nativi di Streamlit */
-    h1, h2, h3, h4, h5, h6, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-    color: #58595b !important;
-    }
-
-    /* Applica il colore anche ai sottotitoli specifici di Streamlit */
-    .st-emotion-cache-isw95m, .st-emotion-cache-10trblm { 
-    color: #58595b !important;
+    /* LINEA ROSSA DI SEPARAZIONE */
+    .header-line {
+        border: 0;
+        height: 1px;
+        background: #FF4B4B;
+        margin-bottom: 30px;
+        opacity: 0.5;
     }
     </style>
-    
-    <div class="nav-container">
-        <a href="/" target="_self" class="nav-link">Home</a>
-        <a href="/app" target="_self" class="nav-link">Gestione Articoli</a>
+
+    <div class="nav-wrapper">
+        <a href="./" target="_self" class="nav-link">Home</a>
+        <a href="./app" target="_self" class="nav-link">Gestione Articoli</a>
     </div>
-    <hr>
+    <div class="header-line"></div>
     """, unsafe_allow_html=True)
 
 st.markdown("<h1 style='text-align: center;'>Gestione Articoli</h1>", unsafe_allow_html=True)
-st.subheader("📄 Inserisci Il file degli articoli")
+st.subheader("📄Inserisci Il file degli articoli")
 
 UPLOAD_DIR = "static"
 if not os.path.exists(UPLOAD_DIR): 
