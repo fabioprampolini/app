@@ -60,13 +60,15 @@ st.markdown("""
 
     /* 3. Opzionale: Nasconde il menu a tre puntini (se non l'hai già fatto) */
     #MainMenu {visibility: none !important;}
-
-    /* 4. Rimuove lo spazio bianco che rimane in alto dopo aver nascosto l'header */
-    .block-container {
-        padding-top: 0rem !important;
-        padding-bottom: 0rem !important;
+    /* 2. Nasconde il pulsante dell'host/account in basso a destra */
+    .stAppDeployButton {
+        display: none !important;
     }
     
+    /* 3. Rimuove lo spazio vuoto in fondo alla pagina */
+    .stApp [data-testid="stStatusWidget"] {
+        visibility: hidden !important;
+    }
     /* NAVIGAZIONE TESTUALE */
     .nav-wrapper {
         display: flex;
