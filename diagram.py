@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import os
 from datetime import datetime
-i
+
 st.set_page_config(page_title="Il Mio Progetto",layout="wide")
 # --- FUNZIONI DI GESTIONE DATI ---
 def salva_dati(file_csv, data, dict_valori):
