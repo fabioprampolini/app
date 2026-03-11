@@ -49,10 +49,20 @@ def crea_sezione_social(nome_social, file_csv, metriche):
                     salva_dati(file_csv, d_sel, input_valori)
                     st.rerun()
 
-# 1. Configurazione Pagina (Deve essere SEMPRE la prima riga)
-
 st.markdown("""
     <style>
+     /* 1. RIMOZIONE TOTALE SIDEBAR E PULSANTE DI CONTROLLO */
+    [data-testid="stSidebar"] {
+        display: none !important;
+    }
+    [data-testid="collapsedControl"] {
+        display: none !important;
+    }
+    
+    /* 2. FORZA IL CONTENUTO AD OCCUPARE TUTTA LA LARGHEZZA */
+    .stApp {
+        margin-left: 0px !important;
+    }
     header {visibility: hidden !important;}
     /* 2. Nasconde il footer "Made with Streamlit" in basso */
     footer {visibility: hidden !important;}
@@ -78,7 +88,7 @@ st.markdown("""
     }
 
     .nav-link:hover {
-        color: #FF4B4B !important; /* Il tuo rosso */
+        color: #FF4B4B !important; 
         border-bottom: 3px solid #FF4B4B;
     }
 
