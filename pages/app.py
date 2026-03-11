@@ -7,17 +7,19 @@ st.set_page_config(page_title="Gestione Articoli", layout="wide", initial_sideba
 
 st.markdown("""
     <style>
-    /* RIMOZIONE ELEMENTI NATIVI */
-    [data-testid="stSidebar"], [data-testid="collapsedControl"] {display: none !important;}
-    .stHeader a { display: none !important; }
-    
-    /* RIMOZIONE DEI TRE PUNTINI IN ALTO A DESTRA */
-    #MainMenu {display: none !important;}
     header {visibility: hidden !important;}
     
-    /* RIMOZIONE DEL FOOTER "MADE WITH STREAMLIT" (Opzionale) */
+    /* 2. Nasconde il footer "Made with Streamlit" in basso */
     footer {visibility: hidden !important;}
-    
+
+    /* 3. Opzionale: Nasconde il menu a tre puntini (se non l'hai già fatto) */
+    #MainMenu {visibility: none !important;}
+
+    /* 4. Rimuove lo spazio bianco che rimane in alto dopo aver nascosto l'header */
+    .block-container {
+        padding-top: 0rem !important;
+        padding-bottom: 0rem !important;
+    }
     /* NAVIGAZIONE TESTUALE */
     .nav-wrapper {
         display: flex;

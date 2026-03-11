@@ -4,9 +4,7 @@ import plotly.express as px
 import os
 from datetime import datetime
 
-# --- CONFIGURAZIONE PAGINA E RIMOZIONE LINK TITOLI ---
-st.set_page_config(layout="wide", page_title="Home")
-
+st.set_page_config(page_title="Il Mio Progetto",layout="wide",initial_sidebar_state="expanded")
 # --- FUNZIONI DI GESTIONE DATI ---
 def salva_dati(file_csv, data, dict_valori):
     nuovo = pd.DataFrame({'Data': [pd.to_datetime(data)], **dict_valori})
@@ -52,23 +50,22 @@ def crea_sezione_social(nome_social, file_csv, metriche):
                     st.rerun()
 
 # 1. Configurazione Pagina (Deve essere SEMPRE la prima riga)
-st.set_page_config(
-    page_title="Il Mio Progetto",
-    layout="wide",
-    initial_sidebar_state="expanded" # Ora la teniamo aperta per la navigazione
-)
+
 st.markdown("""
     <style>
-    /* RIMOZIONE ELEMENTI NATIVI */
-    [data-testid="stSidebar"], [data-testid="collapsedControl"] {display: none !important;}
-    .stHeader a { display: none !important; }
-    
-    /* RIMOZIONE DEI TRE PUNTINI IN ALTO A DESTRA */
-    #MainMenu {display: none !important;}
     header {visibility: hidden !important;}
     
-    /* RIMOZIONE DEL FOOTER "MADE WITH STREAMLIT" (Opzionale) */
+    /* 2. Nasconde il footer "Made with Streamlit" in basso */
     footer {visibility: hidden !important;}
+
+    /* 3. Opzionale: Nasconde il menu a tre puntini (se non l'hai già fatto) */
+    #MainMenu {visibility: none !important;}
+
+    /* 4. Rimuove lo spazio bianco che rimane in alto dopo aver nascosto l'header */
+    .block-container {
+        padding-top: 0rem !important;
+        padding-bottom: 0rem !important;
+    }
     
     /* NAVIGAZIONE TESTUALE */
     .nav-wrapper {
