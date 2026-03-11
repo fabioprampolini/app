@@ -3,8 +3,8 @@ import pandas as pd
 import plotly.express as px
 import os
 from datetime import datetime
-
-st.set_page_config(page_title="Il Mio Progetto",layout="wide",initial_sidebar_state="expanded")
+i
+st.set_page_config(page_title="Il Mio Progetto",layout="wide")
 # --- FUNZIONI DI GESTIONE DATI ---
 def salva_dati(file_csv, data, dict_valori):
     nuovo = pd.DataFrame({'Data': [pd.to_datetime(data)], **dict_valori})
@@ -54,21 +54,11 @@ def crea_sezione_social(nome_social, file_csv, metriche):
 st.markdown("""
     <style>
     header {visibility: hidden !important;}
-    
     /* 2. Nasconde il footer "Made with Streamlit" in basso */
     footer {visibility: hidden !important;}
-
     /* 3. Opzionale: Nasconde il menu a tre puntini (se non l'hai già fatto) */
     #MainMenu {visibility: none !important;}
-    /* 2. Nasconde il pulsante dell'host/account in basso a destra */
-    .stAppDeployButton {
-        display: none !important;
-    }
-    
-    /* 3. Rimuove lo spazio vuoto in fondo alla pagina */
-    .stApp [data-testid="stStatusWidget"] {
-        visibility: hidden !important;
-    }
+ 
     /* NAVIGAZIONE TESTUALE */
     .nav-wrapper {
         display: flex;
