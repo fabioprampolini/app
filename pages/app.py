@@ -46,7 +46,7 @@ st.markdown("""
     }
         div[data-testid="stColumn"] button[help="Elimina file"] {
         background-color: transparent !important;
-        border: none !important;
+        border: 0 !important;
         color: #888 !important; /* Grigio di base */
         font-size: 20px !important;
         padding: 0 !important;
@@ -116,7 +116,6 @@ if filtered_files:
             col_x, col_titolo, col_dl, col_open = st.columns([0.5, 10, 1.5, 1.5], gap="small", vertical_alignment="center")
             
             with col_x:
-                # Pulsante "X" senza bordi
                 if st.button("✖", key=f"del_{doc}", help="Elimina file"):
                     elimina_file(doc)
                 
