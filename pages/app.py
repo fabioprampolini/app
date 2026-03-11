@@ -35,12 +35,23 @@ st.markdown("""
         cursor: pointer;
         border-bottom: 3px solid transparent;
     }
-
     .nav-link:hover {
         color: #FF4B4B !important; /* Il tuo rosso */
         border-bottom: 3px solid #FF4B4B;
     }
-
+        div[data-testid="stColumn"] button[help="Elimina file"] {
+        background-color: transparent !important;
+        border: none !important;
+        color: #888 !important; /* Grigio di base */
+        font-size: 20px !important;
+        padding: 0 !important;
+        line-height: 1 !important;
+        box-shadow: none !important;
+    }
+    div[data-testid="stColumn"] button[help="Elimina file"]:hover {
+        color: #FF4B4B !important; /* Diventa rosso al passaggio */
+        background-color: transparent !important;
+    }
     /* LINEA ROSSA DI SEPARAZIONE */
     .header-line {
         border: 0;
@@ -86,24 +97,30 @@ all_files = [f for f in os.listdir(UPLOAD_DIR) if f.endswith(".pdf")]
 # Filtra la lista in base alla query
 filtered_files = [f for f in all_files if search_query.lower() in f.lower()]
 
+def elimina_file(nome_file):
+    path = os.path.join(UPLOAD_DIR, nome_file)
+    if os.path.exists(path):
+        os.remove(path)
+        st.rerun()
+
+# 3. Sezione Visualizzazione
 if filtered_files:
-    st.write(f"Trovati {len(filtered_files)} documenti:")
     for doc in filtered_files:
-        # Usiamo vertical_alignment per allineare testo e bottoni sulla stessa linea
-        col1, col2 = st.columns([2, 1], gap="small", vertical_alignment="center")
-        
-        with col1:
-            st.text(f"📄 {doc}")
+        with st.container():
+            # Layout: 0.5 per la X, 10 per il titolo, 1.5 per Scarica, 1.5 per Apri
+            col_x, col_titolo, col_dl, col_open = st.columns([0.5, 10, 1.5, 1.5], gap="small", vertical_alignment="center")
             
-            
-        with col2:
-            # Creiamo sottocolonne con larghezza fissa/piccola per "stringere" i bottoni
-            sub_col1, sub_col2 = st.columns([1, 1], gap="small")
-            
-            with sub_col1:
+            with col_x:
+                # Pulsante "X" senza bordi
+                if st.button("✖", key=f"del_{doc}", help="Elimina file"):
+                    elimina_file(doc)
+                
+            with col_titolo:
+                st.markdown(f"{doc}")
+                
+            with col_dl:
                 with open(os.path.join(UPLOAD_DIR, doc), "rb") as f:
-                    st.download_button("Scarica", f, file_name=doc, key=f"dl_{doc}")
+                    st.download_button("Scarica", f, file_name=doc, key=f"dl_{doc}", use_container_width=True, help="Scarica il file")
             
-            with sub_col2:
-                # Nota: rimosso 'key' che causava l'errore
-                st.link_button("Apri", f"app/static/{doc}")
+            with col_open:
+                st.link_button("Visualizza", f"static/{doc}", use_container_width=True, help="Apri il file un altra scheda")
