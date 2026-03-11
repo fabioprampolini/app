@@ -56,7 +56,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 st.markdown("<h1 style='text-align: center;'>Gestione Articoli</h1>", unsafe_allow_html=True)
-st.subheader("Inserisci Il file degli articoli")
+st.subheader("📄 Inserisci Il file degli articoli")
 
 UPLOAD_DIR = "static"
 if not os.path.exists(UPLOAD_DIR): 
