@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import os
 
-st.set_page_config(page_title="Gestione Articoli", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Rassegna Stampa", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
@@ -69,29 +69,18 @@ st.markdown("""
     </style>
 
     <div class="nav-wrapper">
-        <a href="./" target="_self" class="nav-link">Home</a>
-        <a href="./app" target="_self" class="nav-link">Gestione Articoli</a>
+        <a href="./" target="_self" class="nav-link">Social Media</a>
+        <a href="./app" target="_self" class="nav-link">Rassegna Stampa</a>
+        <a href="./inser" target="_self" class="nav-link">Inserisci Dati</a>
     </div>
     <div class="header-line"></div>
     """, unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align: center;'>Gestione Articoli</h1>", unsafe_allow_html=True)
-st.subheader("📄Inserisci Il file degli articoli")
+st.markdown("<h1 style='text-align: center;'>Rassegna Stampa</h1>", unsafe_allow_html=True)
 
 UPLOAD_DIR = "static"
 if not os.path.exists(UPLOAD_DIR): 
     os.makedirs(UPLOAD_DIR)
-
-# --- Sezione Upload ---
-with st.expander("➕ Carica nuovo documento"):
-    uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf")
-    if uploaded_file:
-        file_path = os.path.join(UPLOAD_DIR, uploaded_file.name)
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        st.success(f"File '{uploaded_file.name}' salvato con successo!")
-
-st.divider()
 
 # --- Sezione Ricerca su Titoli ---
 st.subheader("🔍 Cerca tra i titoli")
@@ -128,4 +117,4 @@ if filtered_files:
                     st.download_button("Scarica", f, file_name=doc, key=f"dl_{doc}", use_container_width=True, help="Scarica il file")
             
             with col_open:
-                st.link_button("Visualizza", f"static/{doc}", use_container_width=True, help="Apri il file un altra scheda")
+                st.link_button("Visualizza", f"static/{doc}", use_container_width=True)

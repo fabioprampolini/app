@@ -4,50 +4,21 @@ import plotly.express as px
 import os
 from datetime import datetime
 
-st.set_page_config(page_title="Il Mio Progetto",layout="wide")
-# --- FUNZIONI DI GESTIONE DATI ---
-def salva_dati(file_csv, data, dict_valori):
-    nuovo = pd.DataFrame({'Data': [pd.to_datetime(data)], **dict_valori})
-    if os.path.exists(file_csv):
-        df = pd.read_csv(file_csv, parse_dates=['Data'])
-        df = pd.concat([df, nuovo], ignore_index=True).sort_values('Data')
-    else:
-        df = nuovo
-    df.to_csv(file_csv, index=False)
-
-
+st.set_page_config(page_title="Social Media",layout="wide",initial_sidebar_state="collapsed")
 
 def crea_sezione_social(nome_social, file_csv, metriche):
     st.subheader(f"{nome_social}")
     df = pd.read_csv(file_csv, parse_dates=['Data']) if os.path.exists(file_csv) else pd.DataFrame()
     
     with st.container(border=True):
-        col_chart, col_input = st.columns([3, 1])
+        if not df.empty:
+            scelte = st.multiselect(f"Filtra {nome_social}:", metriche, default=metriche, key=f"ms_{nome_social}")
+            fig = px.line(df, x='Data', y=scelte, markers=True, template="plotly_white", height=350)            
+            fig.update_layout(margin=dict(l=10, r=10, t=10, b=10), legend_orientation="h")
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info(f"Nessun dato per {nome_social}. Inseriscili nel modulo a destra.")
 
-        
-        # --- COLONNA SINISTRA: GRAFICO ---
-        with col_chart:
-            if not df.empty:
-                scelte = st.multiselect(f"Filtra {nome_social}:", metriche, default=metriche, key=f"ms_{nome_social}")
-                fig = px.line(df, x='Data', y=scelte, markers=True, template="plotly_white", height=350)
-                fig.update_layout(margin=dict(l=10, r=10, t=10, b=10), legend_orientation="h")
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info(f"Nessun dato per {nome_social}. Inseriscili nel modulo a destra.")
-
-        # --- COLONNA DESTRA: INPUT ---
-        with col_input:
-            with st.form(f"form_{nome_social}", clear_on_submit=True):
-                st.markdown("<h3 style='text-align: center;'>Inserisci</h3>", unsafe_allow_html=True)
-                d_sel = st.date_input("Giorno", datetime.now(), key=f"date_{nome_social}")
-                
-                input_valori = {}
-                for m in metriche:
-                    input_valori[m] = [st.number_input(m, min_value=0, step=1, key=f"in_{nome_social}_{m}")]
-                
-                if st.form_submit_button(f"Invia", use_container_width=True):
-                    salva_dati(file_csv, d_sel, input_valori)
-                    st.rerun()
 
 st.markdown("""
     <style>
@@ -103,8 +74,9 @@ st.markdown("""
     </style>
 
     <div class="nav-wrapper">
-        <a href="./" target="_self" class="nav-link">Home</a>
-        <a href="./app" target="_self" class="nav-link">Gestione Articoli</a>
+        <a href="./" target="_self" class="nav-link">Social Media</a>
+        <a href="./app" target="_self" class="nav-link">Rassegna Stampa</a>
+        <a href="./inser" target="_self" class="nav-link">Inserisci Dati</a>
     </div>
     <div class="header-line"></div>
     """, unsafe_allow_html=True)
@@ -112,7 +84,7 @@ st.markdown("""
 
 st.markdown('<div class="red-line"></div>', unsafe_allow_html=True)
 # --- MAIN APP ---
-st.markdown("<h1 style='text-align: center;'>Grafici dei social media</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>Social Media</h1>", unsafe_allow_html=True)
 
 # 1. SEZIONE INSTAGRAM
 crea_sezione_social(
