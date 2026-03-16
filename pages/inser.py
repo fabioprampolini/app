@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import os
 from datetime import datetime
-st.set_page_config(page_title="Inserisci Dati", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Amministrazione", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""
     <style>
     header {visibility: hidden !important;}
@@ -77,7 +77,7 @@ st.markdown("""
     <div class="nav-wrapper">
         <a href="./" target="_self" class="nav-link">Social Media</a>
         <a href="./app" target="_self" class="nav-link">Rassegna Stampa</a>
-        <a href="./inser" target="_self" class="nav-link">Inserisci Dati</a>
+        <a href="./inser" target="_self" class="nav-link">Amministrazione</a>
     </div>
     <div class="header-line"></div>
     """, unsafe_allow_html=True)
@@ -105,13 +105,13 @@ def crea_sezione_social(nome_social, file_csv, metriche):
                     st.rerun()
 
 
-st.markdown("<h1 style='text-align: center;'>Inserisci Dati</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>Amministrazione</h1>", unsafe_allow_html=True)
 
 scelta_social = st.selectbox(
  "Scegli che dati devi inserire:",
- ["Rassegne stampa", "Dati Social" ]
+ ["Rassegna stampa", "Dati Social" ]
 )
-if scelta_social == "Rassegne stampa":
+if scelta_social == "Rassegna stampa":
     st.subheader("📄Inserisci Il file degli articoli")
     UPLOAD_DIR = "static"
     if not os.path.exists(UPLOAD_DIR): 

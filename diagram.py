@@ -76,7 +76,7 @@ st.markdown("""
     <div class="nav-wrapper">
         <a href="./" target="_self" class="nav-link">Social Media</a>
         <a href="./app" target="_self" class="nav-link">Rassegna Stampa</a>
-        <a href="./inser" target="_self" class="nav-link">Inserisci Dati</a>
+        <a href="./inser" target="_self" class="nav-link">Amministrazione</a>
     </div>
     <div class="header-line"></div>
     """, unsafe_allow_html=True)

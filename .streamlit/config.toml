@@ -5,4 +5,4 @@ enableStaticServing = true
 base = "light"
 primaryColor = "#FF4B4B"
 textColor = "#000000"
-font = "sans serif"
+font = "sans serif" 
