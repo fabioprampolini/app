@@ -108,11 +108,10 @@ def crea_sezione_social(nome_social, file_csv, metriche):
 st.markdown("<h1 style='text-align: center;'>Amministrazione</h1>", unsafe_allow_html=True)
 
 scelta_social = st.selectbox(
- "Scegli che dati devi inserire:",
+ "",
  ["Rassegna stampa", "Dati Social" ]
 )
 if scelta_social == "Rassegna stampa":
-    st.subheader("📄Inserisci Il file degli articoli")
     UPLOAD_DIR = "static"
     if not os.path.exists(UPLOAD_DIR): 
         os.makedirs(UPLOAD_DIR)
