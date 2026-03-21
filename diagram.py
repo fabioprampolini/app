@@ -71,6 +71,38 @@ st.markdown("""
         margin-bottom: 30px;
         opacity: 0.5;
     }
+
+      @media (max-width: 768px) {
+        /* Riduce il font dei link per non farli uscire dallo schermo */
+        .nav-link {
+            font-size: 18px !important;
+        }
+        
+        .nav-wrapper {
+            gap: 15px !important;
+            justify-content: center; /* Centra il menu su mobile */
+        }
+
+        /* Riduce i titoli principali */
+        h1 {
+            font-size: 24px !important;
+        }
+        
+        .stSubheader {
+            font-size: 20px !important;
+        }
+
+        /* Riduce i margini laterali per sfruttare tutto lo schermo */
+        .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            padding-top: 0rem !important;
+        }
+
+        /* Rende i multiselect più compatti */
+        .stMultiSelect {
+            font-size: 14px !important;
+        }
     </style>
 
     <div class="nav-wrapper">

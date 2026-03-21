@@ -69,6 +69,40 @@ st.markdown("""
         margin-bottom: 30px;
         opacity: 0.5;
     }
+
+    @media (max-width: 768px) {
+    /* 1. Navigazione: riduce font e spazio */
+    .nav-link {
+        font-size: 18px !important;
+        gap: 15px !important;
+    }
+    .nav-wrapper {
+        gap: 15px !important;
+        justify-content: center;
+    }
+
+    /* 2. Titolo principale più piccolo */
+    h1 {
+        font-size: 24px !important;
+    }
+
+    /* 3. Trasforma le colonne dei file in righe singole */
+    /* Streamlit usa div[data-testid="stHorizontalBlock"] per le colonne */
+    div[data-testid="stHorizontalBlock"] {
+        flex-direction: column !important;
+    }
+
+    /* 4. Forza i bottoni (Scarica/Visualizza) a larghezza piena su mobile */
+    div[data-testid="stColumn"] {
+        width: 100% !important;
+        margin-bottom: 10px;
+    }
+    
+    /* 5. Nasconde la "X" su mobile o la sposta per non rompere il layout */
+    div[data-testid="stColumn"]:first-child {
+        text-align: right;
+    }
+}
     </style>
 
     <div class="nav-wrapper">
