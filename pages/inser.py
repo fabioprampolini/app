@@ -72,6 +72,23 @@ st.markdown("""
         margin-bottom: 30px;
         opacity: 0.5;
     }
+    
+     @media (max-width: 768px) {
+    /* 1. Navigazione: riduce font e spazio */
+    .nav-link {
+        font-size: 18px !important;
+        gap: 15px !important;
+    }
+    .nav-wrapper {
+        gap: 15px !important;
+        justify-content: center;
+    }
+
+    /* 2. Titolo principale più piccolo */
+    h1 {
+        font-size: 24px !important;
+    }
+    }
     </style>
 
     <div class="nav-wrapper">
