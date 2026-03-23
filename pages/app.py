@@ -10,22 +10,24 @@ st.set_page_config(page_title="Rassegna Stampa", layout="wide", initial_sidebar_
 
 st.markdown("""
     <style>
-    header {visibility: hidden !important;}
-    
-    /* 2. Nasconde il footer "Made with Streamlit" in basso */
-    footer {visibility: hidden !important;}
-
-    /* 3. Opzionale: Nasconde il menu a tre puntini (se non l'hai già fatto) */
-    #MainMenu {visibility: none !important;}
-     /* 2. Nasconde il pulsante dell'host/account in basso a destra */
-    .stAppDeployButton {
+   /* 1. RIMOZIONE TOTALE SIDEBAR E PULSANTE DI CONTROLLO */
+    [data-testid="stSidebar"] {
+        display: none !important;
+    }
+    [data-testid="collapsedControl"] {
         display: none !important;
     }
     
-    /* 3. Rimuove lo spazio vuoto in fondo alla pagina */
-    .stApp [data-testid="stStatusWidget"] {
-        visibility: hidden !important;
+    /* 2. FORZA IL CONTENUTO AD OCCUPARE TUTTA LA LARGHEZZA */
+    .stApp {
+        margin-left: 0px !important;
     }
+    header {visibility: hidden !important;}
+    /* 2. Nasconde il footer "Made with Streamlit" in basso */
+    footer {visibility: hidden !important;}
+    /* 3. Opzionale: Nasconde il menu a tre puntini (se non l'hai già fatto) */
+    #MainMenu {visibility: none !important;}
+ 
     /* NAVIGAZIONE TESTUALE */
     .nav-wrapper {
         display: flex;
@@ -94,7 +96,8 @@ st.markdown("""
 
     /* 4. Forza i bottoni (Scarica/Visualizza) a larghezza piena su mobile */
     div[data-testid="stColumn"] {
-        width: 30% !important;
+        width: 100% !important;
+        margin-bottom: 10px;
     }
     
     /* 5. Nasconde la "X" su mobile o la sposta per non rompere il layout */
