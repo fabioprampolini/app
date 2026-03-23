@@ -94,8 +94,7 @@ st.markdown("""
 
     /* 4. Forza i bottoni (Scarica/Visualizza) a larghezza piena su mobile */
     div[data-testid="stColumn"] {
-        width: 100% !important;
-        margin-bottom: 10px;
+        width: 30% !important;
     }
     
     /* 5. Nasconde la "X" su mobile o la sposta per non rompere il layout */
