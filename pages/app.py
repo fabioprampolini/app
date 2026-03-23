@@ -102,7 +102,7 @@ st.markdown("""
     div[data-testid="stColumn"]:first-child {
         text-align: right;
     }
-}
+    }
     </style>
 
     <div class="nav-wrapper">
