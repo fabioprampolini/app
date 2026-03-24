@@ -18,7 +18,17 @@ st.markdown("""
     .stAppDeployButton { display: none !important; }
     [data-testid="stStatusWidget"] { visibility: hidden !important; }
 
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 0rem !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+    }
 
+    header {
+        height: 0px !important;
+        display: none !important;
+    }
 
     /* 2. NAVIGAZIONE TESTUALE */
     .nav-wrapper {
@@ -59,13 +69,12 @@ st.markdown("""
         opacity: 0.5;
     }
 
-    /* --- 📱 OTTIMIZZAZIONE MOBILE (MEDIA QUERIES) --- */
+    /* --- OTTIMIZZAZIONE MOBILE (MEDIA QUERIES) --- */
     @media (max-width: 768px) {
         .nav-link { font-size: 18px !important; }
         .nav-wrapper { gap: 15px !important; justify-content: center; }
         h1 { font-size: 24px !important; }
 
-        /* Trasforma le colonne dei file in blocchi verticali */
         div[data-testid="stHorizontalBlock"] {
             flex-direction: column !important;
             gap: 10px !important;
@@ -75,20 +84,17 @@ st.markdown("""
             text-align: center !important;
         }
 
-        /* Sposta la X in alto a destra del box rassegna su mobile */
         div[data-testid="stColumn"]:has(button[help="Elimina file"]) {
             text-align: right !important;
             margin-bottom: -35px !important;
             z-index: 10;
         }
 
-        /* Forza la legenda di Plotly in verticale su mobile */
         .js-plotly-plot .legend {
             display: flex !important;
             flex-direction: column !important;
         }
 
-        /* Riduce altezza grafici su mobile */
         .stPlotlyChart { height: 280px !important; }
         .block-container { padding: 1rem !important; }
     }
@@ -105,71 +111,150 @@ st.markdown("""
 st.markdown("<h1 style='text-align: center;'>Rassegna Stampa</h1>", unsafe_allow_html=True)
 
 UPLOAD_DIR = "static"
-if not os.path.exists(UPLOAD_DIR): 
+if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
+
 # --- ANALISI PDF ---
-def analizza_rassegne(cartella_static):
+# FIX 1: Aggiunto @st.cache_data per evitare di rileggere tutti i PDF ad ogni interazione.
+# Il parametro _file_list (con underscore) è usato solo per invalidare la cache
+# quando i file nella cartella cambiano, senza essere serializzato da Streamlit.
+@st.cache_data
+def analizza_rassegne(cartella_static: str, _file_list: tuple) -> pd.DataFrame:
+    """
+    Analizza i PDF nella cartella e restituisce un DataFrame con data e numero di articoli.
+    La cache viene invalidata automaticamente quando _file_list cambia.
+    """
     dati_report = []
-    if not os.path.exists(cartella_static): return pd.DataFrame()
-    files = [f for f in os.listdir(cartella_static) if f.endswith(".pdf")]
-    
-    for nome_file in files:
+
+    for nome_file in _file_list:
         match_data = re.search(r'(\d{8})\.pdf$', nome_file)
-        if match_data:
-            data_str = match_data.group(1)
-            data_dt = datetime.strptime(data_str, "%d%m%Y")
-            percorso_file = os.path.join(cartella_static, nome_file)
-            doc = fitz.open(percorso_file)
-            numero_articoli = 0
-            for page_num in range(min(5, len(doc))): 
-                testo = doc[page_num].get_text()
-                trovati = re.findall(r'\d{2}/\d{2}/\d{4}', testo)
-                numero_articoli += len(trovati)
-            doc.close()
-            dati_report.append({"Data": data_dt, "File": nome_file, "Articoli": numero_articoli})
+        if not match_data:
+            continue
+
+        data_str = match_data.group(1)
+        data_dt = datetime.strptime(data_str, "%d%m%Y")
+        percorso_file = os.path.join(cartella_static, nome_file)
+
+        # FIX 2: Uso del context manager 'with' per garantire che il documento
+        # venga sempre chiuso, anche in caso di eccezione (evita memory leak
+        # e file bloccati su disco).
+        try:
+            with fitz.open(percorso_file) as doc:
+                numero_articoli = 0
+                for page_num in range(min(5, len(doc))):
+                    testo = doc[page_num].get_text()
+                    trovati = re.findall(r'\d{2}/\d{2}/\d{4}', testo)
+                    numero_articoli += len(trovati)
+
+            dati_report.append({
+                "Data": data_dt,
+                "File": nome_file,
+                "Articoli": numero_articoli,
+            })
+        except Exception as e:
+            # FIX 3: Gestione degli errori per file PDF corrotti o illeggibili.
+            # Il file viene saltato e l'utente viene avvisato, senza bloccare l'intera app.
+            st.warning(f"Impossibile leggere il file '{nome_file}': {e}")
+
     return pd.DataFrame(dati_report)
 
-# --- GRAFICO 1 ---
-df_analisi = analizza_rassegne(UPLOAD_DIR)
-if not df_analisi.empty:
-    fig = px.line(df_analisi, x="Data", y="Articoli", title="Numero di Articoli per Rassegna", markers=True)
-    fig.update_traces(line=dict(color='#FF4B4B', width=4))
-    fig.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(color="white"), legend=dict(orientation="h", y=-0.2)
-    )
-    st.plotly_chart(fig, use_container_width=True)
 
-# --- RICERCA E ELIMINAZIONE ---
-def elimina_file(nome_file):
+# FIX 4: La funzione ora restituisce un bool e non chiama st.rerun() internamente.
+# Questo evita la race condition in cui la pagina si ricaricava prima che
+# Streamlit aggiornasse lo stato, potenzialmente causando un FileNotFoundError.
+def elimina_file(nome_file: str) -> bool:
+    """Elimina il file e restituisce True se l'operazione è riuscita."""
     path = os.path.join(UPLOAD_DIR, nome_file)
     if os.path.exists(path):
         os.remove(path)
-        st.rerun()
+        return True
+    return False
 
+
+# --- CARICAMENTO LISTA FILE ---
+# Raccogliamo la lista una sola volta e la passiamo sia alla cache che alla UI.
+all_files = sorted(
+    [f for f in os.listdir(UPLOAD_DIR) if f.endswith(".pdf")]
+)
+
+# --- GRAFICO ---
+df_analisi = analizza_rassegne(UPLOAD_DIR, _file_list=tuple(all_files))
+if not df_analisi.empty:
+    fig = px.line(
+        df_analisi,
+        x="Data",
+        y="Articoli",
+        title="Numero di Articoli per Rassegna",
+        markers=True,
+    )
+    fig.update_traces(line=dict(color="#FF4B4B", width=4))
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white"),
+        legend=dict(orientation="h", y=-0.2),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+# --- RICERCA ---
 st.subheader("🔍 Cerca Documenti")
-search_input = st.text_input("Cerca...", placeholder="Inserisci data o titolo", label_visibility="collapsed")
+search_input = st.text_input(
+    "Cerca...",
+    placeholder="Inserisci data o titolo",
+    label_visibility="collapsed",
+)
 
-all_files = [f for f in os.listdir(UPLOAD_DIR) if f.endswith(".pdf")]
-search_cleaned = search_input.replace("/", "").replace("-", "").replace(" ", "").lower()
-filtered_files = [f for f in all_files if search_cleaned in f.lower() or search_input.lower() in f.lower()] if search_input else all_files
+search_cleaned = (
+    search_input.replace("/", "").replace("-", "").replace(" ", "").lower()
+)
+
+if search_input:
+    filtered_files = [
+        f for f in all_files
+        if search_cleaned in f.lower() or search_input.lower() in f.lower()
+    ]
+else:
+    filtered_files = all_files
 
 # --- LISTA RISULTATI ---
 if filtered_files:
     for doc in filtered_files:
         with st.container(border=True):
-            col_x, col_titolo, col_dl, col_open = st.columns([0.5, 10, 1.5, 1.5], gap="small", vertical_alignment="center")
-            
+            col_x, col_titolo, col_dl, col_open = st.columns(
+                [0.5, 10, 1.5, 1.5], gap="small", vertical_alignment="center"
+            )
+
             with col_x:
+                # FIX 4 (continua): st.rerun() viene chiamato nel corpo principale,
+                # dopo la conferma dell'eliminazione, non dentro la funzione.
                 if st.button("✖", key=f"del_{doc}", help="Elimina file"):
-                    elimina_file(doc)
+                    if elimina_file(doc):
+                        st.rerun()
+                    else:
+                        st.error(f"Impossibile eliminare '{doc}'.")
+
             with col_titolo:
                 st.markdown(f"**{doc}**")
+
             with col_dl:
-                with open(os.path.join(UPLOAD_DIR, doc), "rb") as f:
-                    st.download_button("Scarica", f, file_name=doc, key=f"dl_{doc}", use_container_width=True, help="Scarica")
+                file_path = os.path.join(UPLOAD_DIR, doc)
+                with open(file_path, "rb") as f:
+                    st.download_button(
+                        "Scarica",
+                        f,
+                        file_name=doc,
+                        key=f"dl_{doc}",
+                        use_container_width=True,
+                        help="Scarica",
+                    )
+
             with col_open:
-                st.link_button("Visualizza", f"static/{doc}", use_container_width=True, help="Visualizza")
+                st.link_button(
+                    "Visualizza",
+                    f"app/static/{doc}",
+                    use_container_width=True,
+                    help="Visualizza",
+                )
 else:
     st.info("Nessun documento trovato.")
