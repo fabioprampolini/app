@@ -2,8 +2,7 @@
 enableStaticServing = true
 
 [theme]
-base = "light" 
-primaryColor = "#FF4B4B"          # Rosso (Bottoni, Slider, Accenti)
- # Grigio Antracite (Sidebar e Widget)
-textColor = "#000000"             # Bianco (Testo)
-font = "sans serif"
+base = "light"
+primaryColor = "#FF4B4B"
+textColor = "#000000"
+font = "sans serif" 
