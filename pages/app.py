@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import base64
-import fitz  # PyMuPDF
 import re
 from typing import Optional
 from utils.db import get_connection
@@ -43,16 +42,6 @@ st.markdown("""
     }
     .nav-link:hover { color: #FF4B4B !important; border-bottom: 3px solid #FF4B4B; }
 
-    div[data-testid="stColumn"] button[help="Elimina file"] {
-        background-color: transparent !important;
-        border: 0 !important;
-        color: #888 !important;
-        font-size: 22px !important;
-        padding: 0 !important;
-        box-shadow: none !important;
-    }
-    div[data-testid="stColumn"] button[help="Elimina file"]:hover { color: #FF4B4B !important; }
-
     .header-line {
         border: 0;
         height: 1px;
@@ -87,7 +76,6 @@ st.markdown("<h1 style='text-align: center;'>Rassegna Stampa</h1>", unsafe_allow
 
 @st.cache_data(ttl=60)
 def carica_elenco_pdf() -> pd.DataFrame:
-    """Carica l'elenco dei PDF dal database (senza il contenuto binario)."""
     try:
         with get_connection() as conn:
             df = pd.read_sql(
@@ -104,7 +92,6 @@ def carica_elenco_pdf() -> pd.DataFrame:
 
 @st.cache_data(ttl=60)
 def carica_contenuto_pdf(nome_file: str) -> Optional[bytes]:
-    """Carica il contenuto binario di un singolo PDF dal database."""
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
@@ -120,7 +107,6 @@ def carica_contenuto_pdf(nome_file: str) -> Optional[bytes]:
 
 
 def elimina_pdf(nome_file: str) -> bool:
-    """Elimina un PDF dal database. Restituisce True se eliminato."""
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
@@ -134,6 +120,13 @@ def elimina_pdf(nome_file: str) -> bool:
     except Exception as e:
         st.error(f"Errore nell'eliminazione di '{nome_file}': {e}")
         return False
+
+
+def normalizza_ricerca(testo: str) -> str:
+    match = re.match(r'^(\d{2})[/\-](\d{2})[/\-](\d{4})$', testo.strip())
+    if match:
+        return f"{match.group(1)}{match.group(2)}{match.group(3)}"
+    return testo
 
 
 # --- GRAFICO ---
@@ -165,20 +158,29 @@ search_input = st.text_input(
     label_visibility="collapsed",
 )
 
-def normalizza_ricerca(testo: str) -> str:
-    """
-    Traduce una data in formato gg/mm/aaaa o gg-mm-aaaa
-    nella stringa numerica ggmmaaaa usata nei nomi dei file.
-    Es: '15/02/2026' → '15022026'
-        '15-02-2026' → '15022026'
-    Se il testo non è una data, lo restituisce invariato.
-    """
-    match = re.match(r'^(\d{2})[/\-](\d{2})[/\-](\d{4})$', testo.strip())
-    if match:
-        return f"{match.group(1)}{match.group(2)}{match.group(3)}"
-    return testo
+# --- POPUP CONFERMA ELIMINAZIONE ---
+# Se è in corso una richiesta di eliminazione, mostra il dialog di conferma
+if "conferma_elimina" in st.session_state and st.session_state["conferma_elimina"]:
+    nome_da_eliminare = st.session_state["conferma_elimina"]
 
+    @st.dialog("Conferma eliminazione")
+    def dialog_elimina():
+        st.warning(f"Sei sicuro di voler eliminare **'{nome_da_eliminare}'**? L'operazione è irreversibile.")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Sì, elimina", use_container_width=True, type="primary"):
+                if elimina_pdf(nome_da_eliminare):
+                    st.cache_data.clear()
+                st.session_state["conferma_elimina"] = None
+                st.rerun()
+        with col2:
+            if st.button("Annulla", use_container_width=True):
+                st.session_state["conferma_elimina"] = None
+                st.rerun()
 
+    dialog_elimina()
+
+# --- LISTA RISULTATI ---
 if not df_pdf.empty:
     if search_input:
         termine = normalizza_ricerca(search_input)
@@ -197,19 +199,17 @@ if not df_pdf.empty:
                 )
 
                 with col_x:
+                    # FIX: invece di eliminare subito, imposta la conferma
                     if st.button("✖", key=f"del_{row['nome_file']}", help="Elimina file"):
-                        if elimina_pdf(row["nome_file"]):
-                            st.cache_data.clear()
-                            st.rerun()
-                        else:
-                            st.error(f"Impossibile eliminare '{row['nome_file']}'.")
+                        st.session_state["conferma_elimina"] = row["nome_file"]
+                        st.rerun()
 
                 with col_titolo:
                     st.markdown(f"**{row['nome_file']}**")
 
                 with col_articoli:
                     n = int(row["numero_articoli"]) if pd.notna(row["numero_articoli"]) else 0
-                    st.markdown(f"📰 **{n}** articoli")
+                    st.markdown(f"**{n}** articoli")
 
                 with col_dl:
                     contenuto = carica_contenuto_pdf(row["nome_file"])
@@ -225,38 +225,39 @@ if not df_pdf.empty:
                         )
 
                 with col_open:
-                    if st.button("Visualizza", key=f"view_{row['nome_file']}", use_container_width=True):
-                        st.session_state[f"open_{row['nome_file']}"] = not st.session_state.get(f"open_{row['nome_file']}", False)
-
-            # Viewer PDF fuori dalle colonne per occupare tutta la larghezza
-            if st.session_state.get(f"open_{row['nome_file']}", False):
-                contenuto_view = carica_contenuto_pdf(row["nome_file"])
-                if contenuto_view:
-                    b64 = base64.b64encode(contenuto_view).decode("utf-8")
-                    pdf_id = str(row["id"])
-                    st.components.v1.html(
-                        f"""
-                        <script>
-                            const b64 = "{b64}";
-                            const binary = atob(b64);
-                            const bytes = new Uint8Array(binary.length);
-                            for (let i = 0; i < binary.length; i++) {{
-                                bytes[i] = binary.charCodeAt(i);
+                    # FIX: apre il PDF in una nuova scheda tramite blob URL generato in JS
+                    contenuto_view = carica_contenuto_pdf(row["nome_file"])
+                    if contenuto_view:
+                        b64 = base64.b64encode(contenuto_view).decode("utf-8")
+                        pdf_id = str(row["id"])
+                        st.components.v1.html(
+                            f"""
+                            <script>
+                            function apriPDF_{pdf_id}() {{
+                                const b64 = "{b64}";
+                                const binary = atob(b64);
+                                const bytes = new Uint8Array(binary.length);
+                                for (let i = 0; i < binary.length; i++) {{
+                                    bytes[i] = binary.charCodeAt(i);
+                                }}
+                                const blob = new Blob([bytes], {{ type: "application/pdf" }});
+                                const url = URL.createObjectURL(blob);
+                                window.open(url, "_blank");
                             }}
-                            const blob = new Blob([bytes], {{ type: "application/pdf" }});
-                            const url = URL.createObjectURL(blob);
-                            document.getElementById("pdf-frame-{pdf_id}").src = url;
-                        </script>
-                        <iframe
-                            id="pdf-frame-{pdf_id}"
-                            width="100%"
-                            height="800px"
-                            style="border:none; border-radius:8px;"
-                        ></iframe>
-                        """,
-                        height=820,
-                        scrolling=False,
-                    )
+                            </script>
+                            <button onclick="apriPDF_{pdf_id}()" style="
+                                width: 100%;
+                                padding: 6px 0;
+                                background: transparent;
+                                border: 1px solid #ccc;
+                                border-radius: 6px;
+                                font-size: 14px;
+                                cursor: pointer;
+                            ">Visualizza</button>
+                            """,
+                            height=40,
+                            scrolling=False,
+                        )
     else:
         st.info("Nessun documento trovato.")
 else:
