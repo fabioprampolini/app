@@ -2,4 +2,4 @@ streamlit
 pandas
 plotly
 pymupdf
-psycopg2
+psycopg2-binary
