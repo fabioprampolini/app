@@ -221,7 +221,6 @@ if not df_pdf.empty:
                             mime="application/pdf",
                             key=f"dl_{row['nome_file']}",
                             use_container_width=True,
-                            help="Scarica",
                         )
 
                 with col_open:
@@ -245,17 +244,43 @@ if not df_pdf.empty:
                                 window.open(url, "_blank");
                             }}
                             </script>
-                            <button onclick="apriPDF_{pdf_id}()" style="
-                                width: 100%;
-                                padding: 6px 0;
-                                background: transparent;
-                                border: 1px solid #ccc;
-                                border-radius: 6px;
-                                font-size: 14px;
-                                cursor: pointer;
-                            ">Visualizza</button>
+                            <style>
+                                * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+                                body {{ background: transparent; }}
+                                button {{
+                                    width: 100%;
+                                    height: 38px;
+                                    background-color: transparent;
+                                    border: 1px solid rgba(49, 51, 63, 0.2);
+                                    border-radius: 0.5rem;
+                                    font-size: 0.875rem;
+                                    font-family: "Source Sans Pro", sans-serif;
+                                    font-weight: 400;
+                                    color: rgb(49, 51, 63);
+                                    cursor: pointer;
+                                    transition: background-color 0.1s, border-color 0.1s, color 0.1s;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    gap: 6px;
+                                }}
+                                button:hover {{
+                                    background-color: rgba(49, 51, 63, 0.08);
+                                
+                                }}
+                                button:active {{
+                                    background-color: rgba(49, 51, 63, 0.08);
+                                    transform: scale(0.98);
+                                }}
+                                svg {{
+                                    flex-shrink: 0;
+                                }}
+                            </style>
+                            <button onclick="apriPDF_{pdf_id}()">
+                                Visualizza
+                            </button>
                             """,
-                            height=40,
+                            height=42,
                             scrolling=False,
                         )
     else:
