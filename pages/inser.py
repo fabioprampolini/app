@@ -1,6 +1,6 @@
 import streamlit as st
 import re
-import fitz  # PyMuPDF
+import fitz
 import io
 from datetime import datetime
 from typing import Optional
@@ -75,12 +75,6 @@ st.markdown("""
 # --- FUNZIONI ---
 
 def conta_articoli_da_bytes(contenuto: bytes) -> int:
-    """
-    Analizza il PDF in memoria (senza salvarlo su disco) e conta
-    le occorrenze di date nel formato gg/mm/aaaa come proxy
-    per il numero di articoli, esattamente come nella versione originale.
-    Usa le prime 5 pagine per efficienza.
-    """
     numero_articoli = 0
     try:
         with fitz.open(stream=contenuto, filetype="pdf") as doc:
@@ -99,10 +93,6 @@ def salva_pdf(
     contenuto: bytes,
     numero_articoli: int,
 ) -> bool:
-    """
-    Salva il PDF nel database con il numero di articoli già calcolato.
-    Restituisce True se salvato, False se il file esiste già.
-    """
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
@@ -124,16 +114,63 @@ def salva_pdf(
         return False
 
 
+def elimina_pdf(nome_file: str) -> bool:
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "DELETE FROM rassegna_stampa WHERE nome_file = %s RETURNING id",
+                    (nome_file,),
+                )
+                risultato = cur.fetchone()
+            conn.commit()
+        return risultato is not None
+    except Exception as e:
+        st.error(f"Errore nell'eliminazione di '{nome_file}': {e}")
+        return False
+
+
+def carica_elenco_pdf(filtro: str = "") -> list:
+    """
+    Carica l'elenco dei PDF dal database.
+    Se filtro è valorizzato, cerca per nome file o data (formato ggmmaaaa).
+    """
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                if filtro:
+                    termine = normalizza_ricerca(filtro)
+                    cur.execute(
+                        """SELECT id, nome_file, data_documento
+                           FROM rassegna_stampa
+                           WHERE LOWER(nome_file) LIKE LOWER(%s)
+                           ORDER BY data_documento DESC NULLS LAST""",
+                        (f"%{termine}%",),
+                    )
+                else:
+                    cur.execute(
+                        """SELECT id, nome_file, data_documento
+                           FROM rassegna_stampa
+                           ORDER BY data_documento DESC NULLS LAST"""
+                    )
+                return cur.fetchall()
+    except Exception as e:
+        st.error(f"Errore nel caricamento dei PDF: {e}")
+        return []
+
+
+def normalizza_ricerca(testo: str) -> str:
+    """Converte gg/mm/aaaa o gg-mm-aaaa in ggmmaaaa per la ricerca nei nomi file."""
+    match = re.match(r'^(\d{2})[/\-](\d{2})[/\-](\d{4})$', testo.strip())
+    if match:
+        return f"{match.group(1)}{match.group(2)}{match.group(3)}"
+    return testo
+
+
 def salva_dati_social(tabella: str, data: object, valori: dict) -> None:
-    """
-    Inserisce o aggiorna un record nella tabella social.
-    ON CONFLICT (data) DO UPDATE gestisce il reinserimento
-    per la stessa data senza errori di duplicato.
-    """
     colonne = ", ".join(valori.keys())
     segnaposto = ", ".join(["%s"] * len(valori))
     aggiornamenti = ", ".join([f"{k} = EXCLUDED.{k}" for k in valori.keys()])
-
     query = f"""
         INSERT INTO {tabella} (data, {colonne})
         VALUES (%s, {segnaposto})
@@ -150,9 +187,7 @@ def salva_dati_social(tabella: str, data: object, valori: dict) -> None:
 
 
 def crea_sezione_social(nome_social: str, tabella: str, metriche: list) -> None:
-    """Genera un form di inserimento dati per un social network."""
     success_key = f"success_{nome_social}"
-
     if st.session_state.get(success_key):
         st.success("Dati salvati con successo!")
         st.session_state[success_key] = False
@@ -160,11 +195,9 @@ def crea_sezione_social(nome_social: str, tabella: str, metriche: list) -> None:
     with st.form(f"form_{nome_social}", clear_on_submit=True):
         st.markdown("<h3 style='text-align: center;'>Inserisci</h3>", unsafe_allow_html=True)
         d_sel = st.date_input("Giorno", datetime.now(), key=f"date_{nome_social}")
-
         valori = {}
         for m in metriche:
             valori[m] = st.number_input(m, min_value=0, step=1, key=f"in_{nome_social}_{m}")
-
         if st.form_submit_button("Invia", use_container_width=True):
             try:
                 salva_dati_social(tabella, d_sel, valori)
@@ -175,6 +208,29 @@ def crea_sezione_social(nome_social: str, tabella: str, metriche: list) -> None:
                 pass
 
 
+# --- POPUP CONFERMA ELIMINAZIONE ---
+if st.session_state.get("conferma_elimina"):
+    nome_da_eliminare = st.session_state["conferma_elimina"]
+
+    @st.dialog("Conferma eliminazione")
+    def dialog_elimina():
+        st.warning(f"Sei sicuro di voler eliminare **'{nome_da_eliminare}'**? L'operazione è irreversibile.")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Sì, elimina", use_container_width=True, type="primary"):
+                if elimina_pdf(nome_da_eliminare):
+                    st.cache_data.clear()
+                    st.success(f"File '{nome_da_eliminare}' eliminato.")
+                st.session_state["conferma_elimina"] = None
+                st.rerun()
+        with col2:
+            if st.button("Annulla", use_container_width=True):
+                st.session_state["conferma_elimina"] = None
+                st.rerun()
+
+    dialog_elimina()
+
+
 # --- MAIN ---
 
 st.markdown("<h1 style='text-align: center;'>Amministrazione</h1>", unsafe_allow_html=True)
@@ -183,13 +239,12 @@ scelta = st.selectbox("", ["Rassegna stampa", "Dati Social"])
 
 # --- SEZIONE RASSEGNA STAMPA ---
 if scelta == "Rassegna stampa":
+
+    # --- CARICA FILE ---
     with st.expander("➕ Carica nuovo documento"):
         uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf")
-
         if uploaded_file:
             contenuto = uploaded_file.getbuffer().tobytes()
-
-            # Estrai la data dal nome file (formato ddmmyyyy.pdf)
             data_documento = None
             match = re.search(r'(\d{8})\.pdf$', uploaded_file.name)
             if match:
@@ -197,18 +252,9 @@ if scelta == "Rassegna stampa":
                     data_documento = datetime.strptime(match.group(1), "%d%m%Y").date()
                 except ValueError:
                     pass
-
-            # Calcola automaticamente il numero di articoli dal PDF
             with st.spinner("Analisi del PDF in corso..."):
                 numero_articoli = conta_articoli_da_bytes(contenuto)
-
-            salvato = salva_pdf(
-                uploaded_file.name,
-                data_documento,
-                contenuto,
-                numero_articoli,
-            )
-
+            salvato = salva_pdf(uploaded_file.name, data_documento, contenuto, numero_articoli)
             if salvato:
                 st.cache_data.clear()
                 st.success(
@@ -217,6 +263,38 @@ if scelta == "Rassegna stampa":
                 )
             else:
                 st.warning(f"'{uploaded_file.name}' esiste già nel database.")
+
+    # --- ELIMINA FILE ---
+    with st.expander("🗑️ Elimina documento"):
+        search_delete = st.text_input(
+            "Cerca per data o titolo...",
+            placeholder="Es. 15/02/2026 oppure nome del file",
+            label_visibility="collapsed",
+            key="search_delete",
+        )
+
+        files = carica_elenco_pdf(filtro=search_delete)
+
+        if files:
+            for row_id, nome_file, data_doc in files:
+                with st.container(border=True):
+                    col_titolo, col_data, col_btn = st.columns(
+                        [7, 3, 1.5], gap="small", vertical_alignment="center"
+                    )
+                    with col_titolo:
+                        st.markdown(f"**{nome_file}**")
+                    with col_data:
+                        data_str = data_doc.strftime("%d/%m/%Y") if data_doc else "—"
+                        st.markdown(f"📅 {data_str}")
+                    with col_btn:
+                        if st.button("Elimina", key=f"del_{nome_file}", use_container_width=True):
+                            st.session_state["conferma_elimina"] = nome_file
+                            st.rerun()
+        else:
+            if search_delete:
+                st.warning(f"Nessun documento trovato per «{search_delete}».")
+            else:
+                st.info("Nessun documento presente nel database.")
 
 # --- SEZIONE DATI SOCIAL ---
 if scelta == "Dati Social":

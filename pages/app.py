@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import base64
 import re
+import fitz
+import io
 from typing import Optional
 from utils.db import get_connection
 
@@ -106,27 +108,36 @@ def carica_contenuto_pdf(nome_file: str) -> Optional[bytes]:
         return None
 
 
-def elimina_pdf(nome_file: str) -> bool:
+@st.cache_data(ttl=300)
+def cerca_nel_contenuto(termine: str) -> list:
+    """
+    Cerca il termine nel testo estratto da tutti i PDF nel database.
+    Restituisce la lista degli id dei file che contengono il termine.
+    La ricerca è case-insensitive e lavora direttamente sul BYTEA del DB,
+    estraendo il testo con PyMuPDF in memoria senza salvare nulla su disco.
+    """
+    if not termine.strip():
+        return []
+    risultati = []
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    "DELETE FROM rassegna_stampa WHERE nome_file = %s RETURNING id",
-                    (nome_file,),
-                )
-                risultato = cur.fetchone()
-            conn.commit()
-        return risultato is not None
+                cur.execute("SELECT id, nome_file, contenuto FROM rassegna_stampa")
+                rows = cur.fetchall()
+        for row_id, nome_file, contenuto_raw in rows:
+            try:
+                contenuto_bytes = bytes(contenuto_raw)
+                with fitz.open(stream=io.BytesIO(contenuto_bytes), filetype="pdf") as doc:
+                    testo_completo = ""
+                    for page in doc:
+                        testo_completo += page.get_text()
+                if termine.lower() in testo_completo.lower():
+                    risultati.append(row_id)
+            except Exception:
+                continue
     except Exception as e:
-        st.error(f"Errore nell'eliminazione di '{nome_file}': {e}")
-        return False
-
-
-def normalizza_ricerca(testo: str) -> str:
-    match = re.match(r'^(\d{2})[/\-](\d{2})[/\-](\d{4})$', testo.strip())
-    if match:
-        return f"{match.group(1)}{match.group(2)}{match.group(3)}"
-    return testo
+        st.warning(f"Errore durante la ricerca nel contenuto: {e}")
+    return risultati
 
 
 # --- GRAFICO ---
@@ -150,59 +161,36 @@ if not df_pdf.empty and df_pdf["data_documento"].notna().any():
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# --- RICERCA ---
-st.subheader("🔍 Cerca Documenti")
+# --- RICERCA NEL CONTENUTO ---
+st.subheader("🔍 Cerca nel contenuto")
 search_input = st.text_input(
-    "Cerca...",
-    placeholder="Inserisci data o titolo",
+    "Cerca nel contenuto...",
+    placeholder="Inserisci una parola o frase da cercare all'interno delle rassegne stampa",
     label_visibility="collapsed",
 )
-
-# --- POPUP CONFERMA ELIMINAZIONE ---
-# Se è in corso una richiesta di eliminazione, mostra il dialog di conferma
-if "conferma_elimina" in st.session_state and st.session_state["conferma_elimina"]:
-    nome_da_eliminare = st.session_state["conferma_elimina"]
-
-    @st.dialog("Conferma eliminazione")
-    def dialog_elimina():
-        st.warning(f"Sei sicuro di voler eliminare **'{nome_da_eliminare}'**? L'operazione è irreversibile.")
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Sì, elimina", use_container_width=True, type="primary"):
-                if elimina_pdf(nome_da_eliminare):
-                    st.cache_data.clear()
-                st.session_state["conferma_elimina"] = None
-                st.rerun()
-        with col2:
-            if st.button("Annulla", use_container_width=True):
-                st.session_state["conferma_elimina"] = None
-                st.rerun()
-
-    dialog_elimina()
+cerca_premuto = bool(search_input.strip())
 
 # --- LISTA RISULTATI ---
 if not df_pdf.empty:
-    if search_input:
-        termine = normalizza_ricerca(search_input)
-        mask = df_pdf["nome_file"].str.contains(termine, case=False, na=False, regex=False)
-        df_filtrato = df_pdf[mask]
-        if df_filtrato.empty:
-            st.warning(f"Nessun documento trovato per la ricerca **'{search_input}'**.")
+    # Determina quali file mostrare
+    if cerca_premuto and search_input.strip():
+        with st.spinner("Ricerca in corso nel contenuto dei PDF..."):
+            id_trovati = cerca_nel_contenuto(search_input.strip())
+        if id_trovati:
+            df_filtrato = df_pdf[df_pdf["id"].isin(id_trovati)]
+            st.success(f"Trovati **{len(df_filtrato)}** documenti contenenti «{search_input}».")
+        else:
+            df_filtrato = pd.DataFrame()
+            st.warning(f"Nessun documento trovato contenente «{search_input}».")
     else:
         df_filtrato = df_pdf
 
     if not df_filtrato.empty:
         for _, row in df_filtrato.iterrows():
             with st.container(border=True):
-                col_x, col_titolo, col_articoli, col_dl, col_open = st.columns(
-                    [0.5, 8, 2, 1.5, 1.5], gap="small", vertical_alignment="center"
+                col_titolo, col_articoli, col_dl, col_open = st.columns(
+                    [8, 2, 1.5, 1.5], gap="small", vertical_alignment="center"
                 )
-
-                with col_x:
-                    # FIX: invece di eliminare subito, imposta la conferma
-                    if st.button("✖", key=f"del_{row['nome_file']}", help="Elimina file"):
-                        st.session_state["conferma_elimina"] = row["nome_file"]
-                        st.rerun()
 
                 with col_titolo:
                     st.markdown(f"**{row['nome_file']}**")
@@ -224,7 +212,6 @@ if not df_pdf.empty:
                         )
 
                 with col_open:
-                    # FIX: apre il PDF in una nuova scheda tramite blob URL generato in JS
                     contenuto_view = carica_contenuto_pdf(row["nome_file"])
                     if contenuto_view:
                         b64 = base64.b64encode(contenuto_view).decode("utf-8")
@@ -262,28 +249,19 @@ if not df_pdf.empty:
                                     display: flex;
                                     align-items: center;
                                     justify-content: center;
-                                    gap: 6px;
                                 }}
                                 button:hover {{
                                     background-color: rgba(49, 51, 63, 0.08);
-                                
                                 }}
                                 button:active {{
                                     background-color: rgba(49, 51, 63, 0.08);
                                     transform: scale(0.98);
                                 }}
-                                svg {{
-                                    flex-shrink: 0;
-                                }}
                             </style>
-                            <button onclick="apriPDF_{pdf_id}()">
-                                Visualizza
-                            </button>
+                            <button onclick="apriPDF_{pdf_id}()">Visualizza</button>
                             """,
                             height=42,
                             scrolling=False,
                         )
-    else:
-        st.info("Nessun documento trovato.")
 else:
     st.info("Nessun documento presente. Caricane uno dalla pagina Amministrazione.")
