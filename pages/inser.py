@@ -250,39 +250,40 @@ if scelta == "Rassegna stampa":
     # --- CARICA FILE ---
     with st.expander("➕ Carica nuovo documento"):
         uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf")
-         # La data viene mostrata solo dopo aver scelto il file
+
         data_documento = st.date_input(
             "Data della rassegna",
             value=datetime.now().date(),
             key="data_upload",
         )
         if st.button("Salva documento", type="primary", use_container_width=True):
-            contenuto = uploaded_file.getbuffer().tobytes()
-            with st.spinner("Analisi del PDF in corso..."):
-                numero_articoli = conta_articoli_da_bytes(contenuto)
-            salvato = salva_pdf(
-                uploaded_file.name,
-                data_documento,
-                contenuto,
-                numero_articoli,
-            )
-            if salvato:
-                st.cache_data.clear()
-                st.success(
-                    f"File '{uploaded_file.name}' salvato con successo! "
-                    f"Articoli rilevati: **{numero_articoli}**"
-                )
+            # FIX: controlla che il file sia presente al momento del click
+            if not uploaded_file:
+                st.error("Seleziona un file PDF prima di salvare.")
             else:
-                st.warning(f"'{uploaded_file.name}' esiste già nel database.")
-        else:
-            # FIX: se nessun file è caricato, non mostrare data né pulsante
-            st.info("Carica un file PDF per procedere.")
+                contenuto = uploaded_file.getbuffer().tobytes()
+                with st.spinner("Analisi del PDF in corso..."):
+                    numero_articoli = conta_articoli_da_bytes(contenuto)
+                salvato = salva_pdf(
+                    uploaded_file.name,
+                    data_documento,
+                    contenuto,
+                    numero_articoli,
+                )
+                if salvato:
+                    st.cache_data.clear()
+                    st.success(
+                        f"File '{uploaded_file.name}' salvato con successo! "
+                        f"Articoli rilevati: **{numero_articoli}**"
+                    )
+                else:
+                    st.warning(f"'{uploaded_file.name}' esiste già nel database.")
 
     # --- ELIMINA FILE ---
     with st.expander("🗑️ Elimina documento"):
         search_delete = st.text_input(
             "Cerca per data o titolo...",
-            placeholder="Inserisci la data o il titolo della rassegna stampa",
+            placeholder="Inserisci la data o il titolo della rassegna stamapa",
             label_visibility="collapsed",
             key="search_delete",
         )
