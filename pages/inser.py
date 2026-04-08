@@ -1,7 +1,6 @@
 import streamlit as st
 import re
 import fitz
-import io
 from datetime import datetime
 from typing import Optional
 from utils.db import get_connection
@@ -75,6 +74,7 @@ st.markdown("""
 # --- FUNZIONI ---
 
 def conta_articoli_da_bytes(contenuto: bytes) -> int:
+    """Conta le date gg/mm/aaaa nelle prime 5 pagine come proxy del numero di articoli."""
     numero_articoli = 0
     try:
         with fitz.open(stream=contenuto, filetype="pdf") as doc:
@@ -93,6 +93,7 @@ def salva_pdf(
     contenuto: bytes,
     numero_articoli: int,
 ) -> bool:
+    """Salva il PDF nel DB. Restituisce True se salvato, False se esiste già."""
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
@@ -115,6 +116,7 @@ def salva_pdf(
 
 
 def elimina_pdf(nome_file: str) -> bool:
+    """Elimina un PDF dal DB. Restituisce True se eliminato."""
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
@@ -130,16 +132,21 @@ def elimina_pdf(nome_file: str) -> bool:
         return False
 
 
+def normalizza_ricerca(testo: str) -> str:
+    """Converte gg/mm/aaaa o gg-mm-aaaa in ggmmaaaa per la ricerca nei nomi file."""
+    match = re.match(r'^(\d{2})[/\-](\d{2})[/\-](\d{4})$', testo.strip())
+    if match:
+        return f"{match.group(1)}{match.group(2)}{match.group(3)}"
+    return testo
+
+
 def carica_elenco_pdf(filtro: str = "") -> list:
-    """
-    Carica l'elenco dei PDF dal database.
-    Se filtro è valorizzato, cerca per nome file o data (formato ggmmaaaa).
-    """
+    """Carica l'elenco dei PDF, opzionalmente filtrati per nome o data."""
     try:
         with get_connection() as conn:
             with conn.cursor() as cur:
-                if filtro:
-                    termine = normalizza_ricerca(filtro)
+                if filtro.strip():
+                    termine = normalizza_ricerca(filtro.strip())
                     cur.execute(
                         """SELECT id, nome_file, data_documento
                            FROM rassegna_stampa
@@ -159,15 +166,8 @@ def carica_elenco_pdf(filtro: str = "") -> list:
         return []
 
 
-def normalizza_ricerca(testo: str) -> str:
-    """Converte gg/mm/aaaa o gg-mm-aaaa in ggmmaaaa per la ricerca nei nomi file."""
-    match = re.match(r'^(\d{2})[/\-](\d{2})[/\-](\d{4})$', testo.strip())
-    if match:
-        return f"{match.group(1)}{match.group(2)}{match.group(3)}"
-    return testo
-
-
 def salva_dati_social(tabella: str, data: object, valori: dict) -> None:
+    """Inserisce o aggiorna un record social. ON CONFLICT gestisce i duplicati per data."""
     colonne = ", ".join(valori.keys())
     segnaposto = ", ".join(["%s"] * len(valori))
     aggiornamenti = ", ".join([f"{k} = EXCLUDED.{k}" for k in valori.keys()])
@@ -187,6 +187,7 @@ def salva_dati_social(tabella: str, data: object, valori: dict) -> None:
 
 
 def crea_sezione_social(nome_social: str, tabella: str, metriche: list) -> None:
+    """Genera un form di inserimento dati per un social network."""
     success_key = f"success_{nome_social}"
     if st.session_state.get(success_key):
         st.success("Dati salvati con successo!")
@@ -209,18 +210,22 @@ def crea_sezione_social(nome_social: str, tabella: str, metriche: list) -> None:
 
 
 # --- POPUP CONFERMA ELIMINAZIONE ---
+# Mostrato prima del resto della pagina per garantire che il dialog
+# appaia correttamente senza interferenze con gli altri widget.
 if st.session_state.get("conferma_elimina"):
     nome_da_eliminare = st.session_state["conferma_elimina"]
 
     @st.dialog("Conferma eliminazione")
     def dialog_elimina():
-        st.warning(f"Sei sicuro di voler eliminare **'{nome_da_eliminare}'**? L'operazione è irreversibile.")
+        st.warning(
+            f"Sei sicuro di voler eliminare **'{nome_da_eliminare}'**? "
+            f"L'operazione è irreversibile."
+        )
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Sì, elimina", use_container_width=True, type="primary"):
                 if elimina_pdf(nome_da_eliminare):
                     st.cache_data.clear()
-                    st.success(f"File '{nome_da_eliminare}' eliminato.")
                 st.session_state["conferma_elimina"] = None
                 st.rerun()
         with col2:
@@ -237,32 +242,43 @@ st.markdown("<h1 style='text-align: center;'>Amministrazione</h1>", unsafe_allow
 
 scelta = st.selectbox("", ["Rassegna stampa", "Dati Social"])
 
-# --- SEZIONE RASSEGNA STAMPA ---
+# ================================================================
+# SEZIONE RASSEGNA STAMPA
+# ================================================================
 if scelta == "Rassegna stampa":
 
     # --- CARICA FILE ---
     with st.expander("➕ Carica nuovo documento"):
         uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf")
+
         if uploaded_file:
-            contenuto = uploaded_file.getbuffer().tobytes()
-            data_documento = None
-            match = re.search(r'(\d{8})\.pdf$', uploaded_file.name)
-            if match:
-                try:
-                    data_documento = datetime.strptime(match.group(1), "%d%m%Y").date()
-                except ValueError:
-                    pass
-            with st.spinner("Analisi del PDF in corso..."):
-                numero_articoli = conta_articoli_da_bytes(contenuto)
-            salvato = salva_pdf(uploaded_file.name, data_documento, contenuto, numero_articoli)
-            if salvato:
-                st.cache_data.clear()
-                st.success(
-                    f"File '{uploaded_file.name}' salvato con successo! "
-                    f"Articoli rilevati: **{numero_articoli}**"
+            # La data viene mostrata solo dopo aver scelto il file
+            data_documento = st.date_input(
+                "Data della rassegna",
+                value=datetime.now().date(),
+                key="data_upload",
+            )
+            if st.button("Salva documento", type="primary", use_container_width=True):
+                contenuto = uploaded_file.getbuffer().tobytes()
+                with st.spinner("Analisi del PDF in corso..."):
+                    numero_articoli = conta_articoli_da_bytes(contenuto)
+                salvato = salva_pdf(
+                    uploaded_file.name,
+                    data_documento,
+                    contenuto,
+                    numero_articoli,
                 )
-            else:
-                st.warning(f"'{uploaded_file.name}' esiste già nel database.")
+                if salvato:
+                    st.cache_data.clear()
+                    st.success(
+                        f"File '{uploaded_file.name}' salvato con successo! "
+                        f"Articoli rilevati: **{numero_articoli}**"
+                    )
+                else:
+                    st.warning(f"'{uploaded_file.name}' esiste già nel database.")
+        else:
+            # FIX: se nessun file è caricato, non mostrare data né pulsante
+            st.info("Carica un file PDF per procedere.")
 
     # --- ELIMINA FILE ---
     with st.expander("🗑️ Elimina documento"):
@@ -291,12 +307,14 @@ if scelta == "Rassegna stampa":
                             st.session_state["conferma_elimina"] = nome_file
                             st.rerun()
         else:
-            if search_delete:
+            if search_delete.strip():
                 st.warning(f"Nessun documento trovato per «{search_delete}».")
             else:
                 st.info("Nessun documento presente nel database.")
 
-# --- SEZIONE DATI SOCIAL ---
+# ================================================================
+# SEZIONE DATI SOCIAL
+# ================================================================
 if scelta == "Dati Social":
     col_ista, col_linkedin, col_facebook = st.columns([1, 1, 1], gap="small")
 
