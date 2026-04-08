@@ -252,9 +252,9 @@ if scelta == "Rassegna stampa":
         uploaded_file = st.file_uploader("Scegli un file PDF", type="pdf")
          # La data viene mostrata solo dopo aver scelto il file
         data_documento = st.date_input(
-        "Data della rassegna",
-        value=datetime.now().date()
-        key="data_upload",
+            "Data della rassegna",
+            value=datetime.now().date(),
+            key="data_upload",
         )
         if st.button("Salva documento", type="primary", use_container_width=True):
             contenuto = uploaded_file.getbuffer().tobytes()
